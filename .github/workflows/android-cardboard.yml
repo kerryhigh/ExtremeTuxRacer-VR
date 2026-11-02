@@ -38,7 +38,7 @@ jobs:
 
       - name: Build Cardboard APK
         working-directory: android
-        run: ./gradlew --no-daemon assembleCardboardDebug
+        run: bash ./gradlew --no-daemon assembleCardboardDebug
 
       - name: Verify APK payload and launcher
         run: |
