@@ -5,3 +5,5 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = "etr"
+include ':sdk'
+project(':sdk').projectDir = file('../deps/cardboard/sdk')

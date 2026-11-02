@@ -1,9 +1,11 @@
 build/
 .cxx/
 .gradle/
+.gradle-home/
 local.properties
 src/main/assets/
 jniLibs/
+libraries/
 
 # Signing material must never be committed.
 keystore.properties

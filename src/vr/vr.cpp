@@ -160,6 +160,11 @@ void EndScreen() {
 	g_in_screen = false;
 }
 
+void PresentScreen() {
+	// OpenXR submits the screen swapchain as a quad composition layer in
+	// EndScreen(). Cardboard uses this hook to draw its stereo panel.
+}
+
 void GetScreenSize(unsigned int& width, unsigned int& height) {
 	XRManager* xr = XRManager::get();
 	width  = xr ? xr->getScreenWidth() : 0;
@@ -288,6 +293,7 @@ int  CurrentEye() { return -1; }
 bool BeginScreen() { return false; }
 void EndScreen() {}
 void GetScreenSize(unsigned int& w, unsigned int& h) { w = h = 0; }
+void PresentScreen() {}
 bool GetEyeProjection(double, double, TMatrix<4, 4>&) { return false; }
 bool GetEyeViewOffset(TMatrix<4, 4>&) { return false; }
 void GetCullHalfFov(double& v, double& h) { v = h = 0.0; }

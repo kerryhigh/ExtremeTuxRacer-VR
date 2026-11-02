@@ -1,9 +1,9 @@
 /* --------------------------------------------------------------------
 EXTREME TUXRACER -- VR façade
 
-The seam between the game and OpenXR. Everything the game needs to know
-about VR goes through here, and every entry point is safe to call (and
-cheap) when VR is unavailable, so the flat build stays untouched.
+The seam between the game and its Android VR backends. Everything the game
+needs to know about VR goes through here, and every entry point is safe to
+call (and cheap) when VR is unavailable, so the desktop build stays untouched.
 
 The camera model is a "stereo chase cam": the game's existing BEHIND /
 FOLLOW orbit camera is the rig, and the tracked head pose plus per-eye
@@ -23,15 +23,14 @@ namespace vr {
  *  makes the world feel the right size through a headset. */
 extern double world_scale;
 
-/** Brings up the OpenXR instance, session and controller bindings.
- *  Returns false (harmlessly) when there is no runtime, in which case the
- *  game runs flat. Requires a current GLES context. */
+/** Brings up the selected VR backend. Returns false harmlessly if it cannot
+ *  initialize. Requires a current GLES context. */
 bool Init();
 void Shutdown();
 
 bool IsActive();
 
-/** True once the runtime has told us the session is visible. */
+/** True while the backend has an active foreground VR presentation. */
 bool IsSessionRunning();
 bool IsExitRequested();
 
@@ -63,6 +62,9 @@ int CurrentEye();
 bool BeginScreen();
 void EndScreen();
 void GetScreenSize(unsigned int& width, unsigned int& height);
+/** Presents the screen canvas as a floating panel. OpenXR uses a quad
+ *  composition layer; Cardboard projects the canvas in stereo. */
+void PresentScreen();
 
 // --------------------------------------------------------------------
 //	Camera injection

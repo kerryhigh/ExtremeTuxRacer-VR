@@ -174,11 +174,12 @@ void State::Manager::VRLoop(float time_step) {
 			vr::EndEye(eye);
 		}
 	} else {
-		// Menu screens draw themselves monoscopically into the quad-layer
-		// swapchain, unchanged.
+		// Menu screens keep their existing flat layout on the VR backend's
+		// floating panel, then present that panel in both eyes.
 		if (vr::BeginScreen()) {
 			current->Loop(time_step);
 			vr::EndScreen();
+			vr::PresentScreen();
 		}
 	}
 

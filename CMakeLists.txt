@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------
-# Extreme Tux Racer -- Android / Meta Quest build
+# Extreme Tux Racer -- Android VR build
 #
 # The upstream project builds with autotools (Linux) or an MSBuild project
 # (Windows); neither can target Android, so this is a parallel build
@@ -33,10 +33,37 @@ add_library(native_app_glue STATIC
 target_include_directories(native_app_glue PUBLIC
     ${ANDROID_NDK}/sources/android/native_app_glue)
 
-# Prebuilt Khronos OpenXR loader, vendored from the official AAR.
-add_library(openxr_loader SHARED IMPORTED)
-set_target_properties(openxr_loader PROPERTIES
-    IMPORTED_LOCATION ${DEPS}/openxr/jni/arm64-v8a/libopenxr_loader.so)
+# Keep the Quest and Cardboard native runtimes as separate Android build
+# variants. The desktop build is still defined by autotools/MSBuild.
+set(ETR_VR_BACKEND "OPENXR" CACHE STRING "Android VR backend (OPENXR or CARDBOARD)")
+set_property(CACHE ETR_VR_BACKEND PROPERTY STRINGS OPENXR CARDBOARD)
+
+if(ETR_VR_BACKEND STREQUAL "OPENXR")
+    # Prebuilt Khronos OpenXR loader, vendored from the official AAR.
+    add_library(openxr_loader SHARED IMPORTED)
+    set_target_properties(openxr_loader PROPERTIES
+        IMPORTED_LOCATION ${DEPS}/openxr/jni/arm64-v8a/libopenxr_loader.so)
+    set(VR_SOURCES
+        ${SRC}/vr/vr.cpp
+        ${SRC}/vr/xr_manager.cpp
+        ${SRC}/vr/xr_input.cpp)
+    set(VR_INCLUDE_DIRS ${DEPS}/openxr/include)
+    set(VR_LINK_LIBRARIES openxr_loader)
+    set(VR_DEFINITIONS ENABLE_OPENXR=1)
+elseif(ETR_VR_BACKEND STREQUAL "CARDBOARD")
+    # The official Cardboard SDK AAR is built by Gradle first; its native
+    # GLES distortion library is extracted to this path before CMake runs.
+    add_library(cardboard_sdk SHARED IMPORTED)
+    set_target_properties(cardboard_sdk PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_CURRENT_SOURCE_DIR}/android/libraries/jni/${ANDROID_ABI}/libGfxPluginCardboard.so)
+    set(VR_SOURCES ${SRC}/vr/cardboard.cpp)
+    set(VR_INCLUDE_DIRS ${DEPS}/cardboard/sdk/include)
+    set(VR_LINK_LIBRARIES cardboard_sdk)
+    set(VR_DEFINITIONS ENABLE_CARDBOARD=1)
+else()
+    message(FATAL_ERROR "Unsupported ETR_VR_BACKEND='${ETR_VR_BACKEND}'")
+endif()
 
 # --------------------------------------------------------------------
 #	Game sources (mirrors src/Makefile.am)
@@ -106,13 +133,6 @@ set(PLATFORM_SOURCES
     ${SRC}/platform/android_main.cpp
 )
 
-# OpenXR session, stereo frame driver and Touch controller input.
-set(VR_SOURCES
-    ${SRC}/vr/vr.cpp
-    ${SRC}/vr/xr_manager.cpp
-    ${SRC}/vr/xr_input.cpp
-)
-
 add_library(etr SHARED
     ${GAME_SOURCES}
     ${GLES_SOURCES}
@@ -124,14 +144,12 @@ target_include_directories(etr PRIVATE
     ${SRC}
     ${SRC}/platform      # makes <SFML/...> resolve to the shim
     ${DEPS}/stb
-    ${DEPS}/openxr/include
+    ${VR_INCLUDE_DIRS}
 )
 
 target_compile_definitions(etr PRIVATE
     ETR_ANDROID=1
-    # xr_manager.hpp defines XR_USE_PLATFORM_ANDROID and
-    # XR_USE_GRAPHICS_API_OPENGL_ES itself before including <openxr.h>.
-    ENABLE_OPENXR=1
+    ${VR_DEFINITIONS}
 )
 
 # The upstream sources are from 2016 and trip a lot of modern warnings that
@@ -151,7 +169,7 @@ target_link_options(etr PRIVATE "-u" "ANativeActivity_onCreate")
 
 target_link_libraries(etr
     native_app_glue
-    openxr_loader
+    ${VR_LINK_LIBRARIES}
     EGL
     GLESv3
     aaudio

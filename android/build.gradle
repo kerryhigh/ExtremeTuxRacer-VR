@@ -1,9 +1,9 @@
 // --------------------------------------------------------------------
-// Extreme Tux Racer -- Meta Quest APK
+// Extreme Tux Racer -- Quest/OpenXR and Android/Cardboard APKs
 //
 // The native side is built by the CMakeLists.txt at the repository root,
 // which compiles the game, the GLES 3 compatibility shim, the SFML
-// compatibility layer, the OpenXR integration and the platform layer
+// compatibility layer, one selected VR backend and the platform layer
 // into libetr.so.
 //
 // The 52 MB data tree is staged into src/main/assets by stageAssets
@@ -13,6 +13,7 @@
 
 plugins {
     id 'com.android.application' version '8.13.0'
+    id 'com.google.protobuf' version '0.10.0' apply false
 }
 
 def dataDir    = file('../data')
@@ -29,7 +30,9 @@ if (keystorePropsFile.exists()) {
 
 android {
     namespace 'org.etr.vr'
-    compileSdk 34
+    compileSdk 35
+    // Keep the original Quest build toolchain pinned. The Cardboard SDK's
+    // own library module pins NDK 29 for building its AAR.
     ndkVersion '27.2.12479018'
 
     defaultConfig {
@@ -51,6 +54,21 @@ android {
         }
     }
 
+    flavorDimensions += 'vrBackend'
+    productFlavors {
+        quest {
+            dimension 'vrBackend'
+            externalNativeBuild.cmake.arguments += '-DETR_VR_BACKEND=OPENXR'
+        }
+        cardboard {
+            dimension 'vrBackend'
+            applicationId 'org.etr.cardboard'
+            targetSdk 35
+            versionNameSuffix '-cardboard'
+            externalNativeBuild.cmake.arguments += '-DETR_VR_BACKEND=CARDBOARD'
+        }
+    }
+
     externalNativeBuild {
         cmake {
             path '../CMakeLists.txt'
@@ -60,10 +78,10 @@ android {
 
     sourceSets {
         main {
-            // The app is pure NativeActivity: there is no Java at all.
             assets.srcDirs = [assetsDir]
-            // The OpenXR loader is a prebuilt from the Khronos AAR, so it
-            // is packaged directly rather than produced by the CMake build.
+        }
+        quest {
+            // Keep the Quest loader out of the Cardboard APK.
             jniLibs.srcDirs = ['../deps/openxr/jni']
         }
     }
@@ -121,6 +139,10 @@ android {
     }
 }
 
+dependencies {
+    cardboardImplementation project(':sdk')
+}
+
 // --------------------------------------------------------------------
 //	Data payload staging
 // --------------------------------------------------------------------
@@ -167,10 +189,38 @@ tasks.register('stageAssets') {
     }
 }
 
+// CMake links against the native library produced by the official Cardboard
+// SDK AAR. Build that AAR and expose its arm64 library before the Cardboard
+// variant's CMake configure/build tasks run. The project dependency packages
+// the matching library and QR scanner Java/resources into the APK.
+tasks.register('extractCardboardNdk') {
+    dependsOn ':sdk:assembleRelease'
+    inputs.file('../deps/cardboard/sdk/build/outputs/aar/sdk-release.aar')
+    outputs.file('libraries/jni/arm64-v8a/libGfxPluginCardboard.so')
+
+    doLast {
+        def sdkAar = file('../deps/cardboard/sdk/build/outputs/aar/sdk-release.aar')
+        if (!sdkAar.exists()) {
+            throw new GradleException("Cardboard SDK AAR not found: ${sdkAar}")
+        }
+        copy {
+            from zipTree(sdkAar)
+            into file('libraries')
+            include 'jni/arm64-v8a/libGfxPluginCardboard.so'
+        }
+    }
+}
+
 // Anything that reads the assets directory has to run after it is staged,
 // or Gradle rejects the build for an undeclared dependency.
 tasks.configureEach { task ->
     if (task.name == 'stageAssets') return
+
+    if ((task.name.startsWith('preCardboard') && task.name.endsWith('Build')) ||
+        task.name.startsWith('configureCMakeCardboard') ||
+        task.name.startsWith('buildCMakeCardboard')) {
+        task.dependsOn 'extractCardboardNdk'
+    }
 
     def readsAssets =
         (task.name.startsWith('merge') && task.name.endsWith('Assets')) ||

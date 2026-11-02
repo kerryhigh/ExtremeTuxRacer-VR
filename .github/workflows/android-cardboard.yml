@@ -1,0 +1,76 @@
+name: Android Cardboard APK
+
+on:
+  push:
+    branches:
+      - master
+      - "feature/**"
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-cardboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-35
+            build-tools;35.0.1
+            ndk;27.2.12479018
+            ndk;29.0.14206865
+            cmake;3.22.1
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test Android gamepad and trick mappings
+        run: |
+          g++ -std=c++14 -Wall -Wextra -Werror -Isrc -Isrc/platform \
+            tests/android_gamepad_mapping_test.cpp -o /tmp/android-gamepad-mapping-test
+          /tmp/android-gamepad-mapping-test
+
+      - name: Build Cardboard APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleCardboardDebug
+
+      - name: Verify APK payload and launcher
+        run: |
+          apk=android/build/outputs/apk/cardboard/debug/etr-cardboard-debug.apk
+          python - "$apk" <<'PY'
+          import sys, zipfile
+          apk = sys.argv[1]
+          with zipfile.ZipFile(apk) as z:
+              names = set(z.namelist())
+          required = {
+              "lib/arm64-v8a/libetr.so",
+              "lib/arm64-v8a/libGfxPluginCardboard.so",
+              "assets/data_manifest.txt",
+          }
+          missing = sorted(required - names)
+          assert not missing, f"APK missing required entries: {missing}"
+          assert any(n.startswith("assets/data/") for n in names), "game data missing"
+          assert not any("openxr" in n.lower() for n in names), "OpenXR leaked into Cardboard APK"
+          print(f"Verified {apk}: {len(names)} entries, ARM64 game + Cardboard libs, game assets, no OpenXR")
+          PY
+          aapt="${ANDROID_HOME}/build-tools/35.0.1/aapt"
+          "$aapt" dump badging "$apk" | grep -q "package: name='org.etr.cardboard'"
+          "$aapt" dump badging "$apk" | grep -q "launchable-activity: name='org.etr.vr.CardboardActivity'"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extreme-tux-racer-cardboard
+          path: android/build/outputs/apk/cardboard/debug/etr-cardboard-debug.apk
+          if-no-files-found: error
+          retention-days: 30

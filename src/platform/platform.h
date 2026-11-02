@@ -14,6 +14,33 @@ point. Not included by game code.
 
 struct android_app;
 
+/** Snapshot of the standard Android gamepad axes and buttons. The NDK
+ * input callback fills this for a Bluetooth controller; the Cardboard VR
+ * backend translates it into the game's existing joystick and key events. */
+struct AndroidGamepadState {
+	bool connected = false;
+	float left_x = 0.f;
+	float left_y = 0.f;
+	float left_trigger = 0.f;
+	float right_trigger = 0.f;
+	bool a = false;
+	bool b = false;
+	bool x = false;
+	bool y = false;
+	bool left_bumper = false;
+	bool right_bumper = false;
+	bool menu = false;
+	bool view = false;
+	bool dpad_up = false;
+	bool dpad_down = false;
+	bool dpad_left = false;
+	bool dpad_right = false;
+	bool hat_up = false;
+	bool hat_down = false;
+	bool hat_left = false;
+	bool hat_right = false;
+};
+
 namespace etr_platform {
 
 /** Initialises the GL compatibility shim and the input state. The EGL
@@ -36,9 +63,13 @@ bool PollEvent(sf::Event& event);
 void PumpAndroidEvents();
 bool IsResumed();
 bool IsDestroyRequested();
+bool HasDisplaySurface();
+void GetDisplaySize(unsigned int& width, unsigned int& height);
+bool PresentDisplay();
+AndroidGamepadState GetGamepadState();
 
-/** Injects a synthetic event, used by the OpenXR input layer to deliver
- *  controller state through the game's existing joystick handlers. */
+/** Injects a synthetic event so a VR backend can deliver controller and
+ *  menu state through the game's existing input handlers. */
 void PushEvent(const sf::Event& event);
 
 /** Current state of the virtual joystick that the VR input layer drives. */

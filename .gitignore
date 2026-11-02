@@ -8,6 +8,7 @@ build/outputs/
 **/.gradle/
 android/build/
 vr-probe/build/
+deps/cardboard/sdk/build/
 
 # Machine-specific SDK location
 local.properties
