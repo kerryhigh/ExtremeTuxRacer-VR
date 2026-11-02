@@ -25,6 +25,12 @@ GNU General Public License for more details.
 #include "ogl.h"
 #include "winsys.h"
 #include "gui.h"
+#ifdef ETR_ANDROID
+#include "vr/vr.h"
+#endif
+
+#include <algorithm>
+#include <cmath>
 
 #define USE_UNICODE 1
 
@@ -81,6 +87,22 @@ static std::size_t MakeLine(std::size_t first, const std::vector<std::string>& w
 // --------------------------------------------------------------------
 
 CFont FT;
+
+namespace {
+
+float TextScale() {
+#ifdef ETR_ANDROID
+	return vr::UiTextScale();
+#else
+	return 1.0f;
+#endif
+}
+
+unsigned int ScaledTextSize(unsigned int size) {
+	return std::max(1u, static_cast<unsigned int>(std::lround(size * TextScale())));
+}
+
+}  // namespace
 
 CFont::CFont() {
 	// setting default values
@@ -171,10 +193,16 @@ void CFont::SetFont(const std::string& fontname) {
 }
 
 void CFont::SetFontFromSettings() {
+#ifdef ENABLE_CARDBOARD
+	// The papercut face is decorative and loses clarity on Cardboard's
+	// resampled floating canvas. Use the existing heavier sans face here.
+	SetFont("bold");
+#else
 	if (param.use_papercut_font > 0)
 		SetFont("pc20");
 	else
 		SetFont("bold");
+#endif
 }
 
 // -------------------- auto ------------------------------------------
@@ -183,13 +211,17 @@ unsigned int CFont::AutoSizeN(int rel_val) {
 	unsigned int size = (rel_val + 2) * 4;
 	size *= curr_fact * Winsys.scale;
 	SetSize(size);
-	return size;
+	return ScaledTextSize(size);
 }
 
 int CFont::AutoDistanceN(int rel_val) const {
 	float fact = (rel_val + 5) * 0.2f;
-	float dist = curr_size * fact;
+	float dist = curr_size * fact * TextScale();
 	return (int) dist;
+}
+
+unsigned int CFont::GetSize() const {
+	return ScaledTextSize(curr_size);
 }
 
 // -------------------- draw (x, y, text) -----------------------------
@@ -197,7 +229,7 @@ int CFont::AutoDistanceN(int rel_val) const {
 void CFont::DrawText(float x, float y, const sf::String& text, std::size_t font, unsigned int size) const {
 	if (font >= fonts.size()) return;
 
-	sf::Text temp(text, *fonts[font], size);
+	sf::Text temp(text, *fonts[font], ScaledTextSize(size));
 	if (x == CENTER)
 		x = (Winsys.resolution.width - temp.getLocalBounds().width) / 2;
 	temp.setPosition(x, y);
@@ -220,7 +252,7 @@ void CFont::DrawString(float x, float y, const sf::String& s, const std::string 
 void CFont::GetTextSize(const sf::String& text, float &x, float &y, std::size_t font, unsigned int size) const {
 	if (font >= fonts.size()) { x = 0; y = 0; return; }
 
-	sf::Text temp(text, *fonts[font], size);
+	sf::Text temp(text, *fonts[font], ScaledTextSize(size));
 	x = temp.getGlobalBounds().width;
 	y = temp.getGlobalBounds().height;
 }

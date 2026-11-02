@@ -72,6 +72,7 @@ void Shutdown() {
 }
 
 bool IsActive() { return XRManager::isVRActive(); }
+float UiTextScale() { return 1.0f; }
 
 bool IsSessionRunning() {
 	XRManager* xr = XRManager::get();
@@ -158,6 +159,11 @@ void EndScreen() {
 	if (!xr || !g_in_screen) return;
 	xr->releaseScreenImage();
 	g_in_screen = false;
+}
+
+void PresentScreen() {
+	// OpenXR submits the screen swapchain as a quad composition layer in
+	// EndScreen(). Cardboard uses this hook to draw its stereo panel.
 }
 
 void GetScreenSize(unsigned int& width, unsigned int& height) {
@@ -277,6 +283,7 @@ double world_scale = 1.0;
 bool Init() { return false; }
 void Shutdown() {}
 bool IsActive() { return false; }
+float UiTextScale() { return 1.0f; }
 bool IsSessionRunning() { return false; }
 bool IsExitRequested() { return false; }
 bool BeginFrame() { return false; }
@@ -288,6 +295,7 @@ int  CurrentEye() { return -1; }
 bool BeginScreen() { return false; }
 void EndScreen() {}
 void GetScreenSize(unsigned int& w, unsigned int& h) { w = h = 0; }
+void PresentScreen() {}
 bool GetEyeProjection(double, double, TMatrix<4, 4>&) { return false; }
 bool GetEyeViewOffset(TMatrix<4, 4>&) { return false; }
 void GetCullHalfFov(double& v, double& h) { v = h = 0.0; }

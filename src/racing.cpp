@@ -20,6 +20,7 @@ GNU General Public License for more details.
 #endif
 
 #include "racing.h"
+#include "racing_tricks.h"
 #include "audio.h"
 #include "course_render.h"
 #include "ogl.h"
@@ -125,9 +126,20 @@ void CRacing::Keyb(sf::Keyboard::Key key, bool release, int x, int y) {
 				param.view_mode = BEHIND;
 			}
 			break;
+		case sf::Keyboard::Y:
+			if (!release) {
+				const TViewMode next = static_cast<TViewMode>(
+				    (param.view_mode + 1) % NUM_VIEW_MODES);
+				set_view_mode(g_game.player->ctrl, next);
+				param.view_mode = next;
+			}
+			break;
 
 		// toggle display settings
 		case sf::Keyboard::H:
+			if (!release) param.show_hud = !param.show_hud;
+			break;
+		case sf::Keyboard::X:
 			if (!release) param.show_hud = !param.show_hud;
 			break;
 		case sf::Keyboard::F:
@@ -337,12 +349,18 @@ static void CalcFinishControls(CControl *ctrl, float timestep, bool airborne) {
 // ----------------------- trick --------------------------------------
 
 static void CalcTrickControls(CControl *ctrl, float time_step, bool airborne) {
-	if (airborne && trick_modifier) {
-		if (left_turn) ctrl->roll_left = true;
-		if (right_turn) ctrl->roll_right = true;
-		if (key_paddling) ctrl->front_flip = true;
-		if (ctrl->is_braking) ctrl->back_flip = true;
-	}
+	// Keyboard rolls use direction flags; gamepads use analog steering. The
+	// same request helper serves both, while paddle/brake requests keep flips
+	// independently combinable with rolls.
+	const TTrickRequests requests = GetTrickRequests(
+	    airborne, trick_modifier, left_turn, right_turn,
+	    stick_turn, static_cast<float>(stick_turnfact),
+	    key_paddling || stick_paddling,
+	    key_braking || stick_braking || ctrl->is_braking);
+	if (requests.roll_left) ctrl->roll_left = true;
+	if (requests.roll_right) ctrl->roll_right = true;
+	if (requests.front_flip) ctrl->front_flip = true;
+	if (requests.back_flip) ctrl->back_flip = true;
 
 	if (ctrl->roll_left || ctrl->roll_right) {
 		ctrl->roll_factor += (ctrl->roll_left ? -1 : 1) * 0.15 * time_step / 0.05;

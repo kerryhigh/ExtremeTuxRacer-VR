@@ -1,15 +1,13 @@
 /* --------------------------------------------------------------------
 EXTREME TUXRACER -- SFML compatibility layer: Window module
 
-There is no window in the desktop sense: the OpenXR runtime owns every
-surface the player actually sees, and the EGL context lives in
-android_main.cpp. What remains here is the event queue and the input
-state the game polls.
+There is no desktop window: the Quest OpenXR runtime or Cardboard backend
+owns the surface the player actually sees, and the EGL context lives in
+android_main.cpp. What remains here is the event queue and the input state
+the game polls.
 
-The joystick is virtual. Nothing is plugged into a Quest, so the OpenXR
-controller action set writes axis and button state here (see
-src/vr/xr_input.cpp) and CRacing::Jaxis / CRacing::Jbutt keep working
-untouched.
+The joystick is virtual. OpenXR actions or Android gamepad events write
+axis and button state here, keeping CRacing::Jaxis / CRacing::Jbutt unchanged.
 ---------------------------------------------------------------------*/
 
 #include "SFML/Window.hpp"
@@ -65,9 +63,13 @@ bool Init() {
 		return false;
 	}
 
-	// Joystick 0 always reports connected: the Touch controllers are mapped
-	// onto it, and the game only polls a joystick it believes exists.
+	// OpenXR creates a virtual controller immediately; Cardboard exposes one
+	// only while a physical Android gamepad is connected.
+#ifdef ENABLE_OPENXR
 	g.joy_connected[0] = true;
+#else
+	g.joy_connected[0] = false;
+#endif
 	g.open = true;
 	LOGI("platform ready, 2D canvas %ux%u", g.width, g.height);
 	return true;
@@ -156,7 +158,23 @@ bool GetJoystickButton(unsigned int joystick, unsigned int button) {
 }
 
 void SetJoystickConnected(unsigned int joystick, bool connected) {
-	if (joystick < sf::Joystick::Count) g.joy_connected[joystick] = connected;
+	if (joystick >= sf::Joystick::Count ||
+	    g.joy_connected[joystick] == connected)
+		return;
+	g.joy_connected[joystick] = connected;
+
+	if (!connected) {
+		for (int axis = 0; axis < sf::Joystick::AxisCount; ++axis)
+			SetJoystickAxis(joystick, static_cast<sf::Joystick::Axis>(axis), 0.f);
+		for (unsigned int button = 0; button < sf::Joystick::ButtonCount; ++button)
+			SetJoystickButton(joystick, button, false);
+	}
+
+	sf::Event ev;
+	ev.type = connected ? sf::Event::JoystickConnected
+	                    : sf::Event::JoystickDisconnected;
+	ev.joystickConnect.joystickId = joystick;
+	PushEvent(ev);
 }
 
 }  // namespace etr_platform

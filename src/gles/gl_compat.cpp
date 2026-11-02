@@ -342,6 +342,10 @@ extern "C" void etrgl_LoadMatrixf(const GLfloat* m) {
 	std::memcpy(g.current().m, m, sizeof(float) * 16);
 }
 
+extern "C" void etrgl_GetModelViewMatrix(GLfloat* out) {
+	if (out) std::memcpy(out, g.modelview.back().m, sizeof(float) * 16);
+}
+
 extern "C" void etrgl_MultMatrixd(const GLdouble* m) {
 	Mat4 rhs;
 	for (int i = 0; i < 16; i++) rhs.m[i] = static_cast<float>(m[i]);

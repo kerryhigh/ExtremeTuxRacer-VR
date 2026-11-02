@@ -34,16 +34,14 @@ GNU General Public License for more details.
 #include "regist.h"
 #include "winsys.h"
 
-#ifdef ETR_ANDROID
+#if defined(ETR_ANDROID) && !defined(ENABLE_CARDBOARD)
 #include "loading.h"
 
 namespace {
 
-/** Picks a default player, character and course so the headset build can
- *  go straight into a race. The menus are drawn as a flat panel in VR but
- *  are not navigable yet -- there is no pointer to click them with -- so
- *  until that lands (see the VR menu milestone) this is how the game is
- *  reachable at all.
+/** Picks a default player, character and course so the Quest build can
+ *  go straight into a race. Cardboard now starts in the original menus,
+ *  which are navigable with its gamepad input.
  *
  *  Called only once every resource list has been loaded, so all of these
  *  collections are already populated. */
@@ -139,10 +137,16 @@ void CSplashScreen::Loop(float timestep) {
 
 		if (reason.isEmpty())
 #ifdef ETR_ANDROID
+#ifdef ENABLE_CARDBOARD
+			// Cardboard has controller navigation, so begin in the original
+			// registration/menu flow. Quest keeps its established direct-race start.
+			State::manager.RequestEnterState(Regist);
+#else
 			if (SetupDirectRace())
 				State::manager.RequestEnterState(Loading);
 			else
 				State::manager.RequestEnterState(Regist);
+#endif
 #else
 			State::manager.RequestEnterState(Regist);
 #endif
