@@ -30,6 +30,10 @@ void Shutdown();
 
 bool IsActive();
 
+/** Scale for Cardboard's floating 2D canvas. Other backends keep the
+ *  game's original font size. */
+float UiTextScale();
+
 /** True while the backend has an active foreground VR presentation. */
 bool IsSessionRunning();
 bool IsExitRequested();

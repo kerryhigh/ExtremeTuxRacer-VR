@@ -25,6 +25,10 @@ GNU General Public License for more details.
 #include "spx.h"
 #include "view.h"
 #include "course.h"
+#if defined(ETR_ANDROID) && defined(ENABLE_CARDBOARD)
+#include "vr/vr.h"
+#include "gles/gl_compat.h"
+#endif
 
 // --------------------------------------------------------------------
 //					defaults
@@ -210,7 +214,18 @@ void CEnvironment::DrawSkybox(const TVector3d& pos) const {
 	glColor4ub(255, 255, 255, 255);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 	glPushMatrix();
-	glTranslate(pos);
+#if defined(ETR_ANDROID) && defined(ENABLE_CARDBOARD)
+	if (vr::CurrentEye() >= 0) {
+		// A finite sky cube picks up per-eye IPD translation and appears close
+		// or offset between eyes. Keep camera/head rotation while removing
+		// translation so the sky stays at infinity without positional parallax.
+		GLfloat sky_view[16];
+		etrgl_GetModelViewMatrix(sky_view);
+		sky_view[12] = sky_view[13] = sky_view[14] = 0.f;
+		glLoadMatrixf(sky_view);
+	} else
+#endif
+		glTranslate(pos);
 
 	static const GLfloat tex[] = {
 		aa, bb,

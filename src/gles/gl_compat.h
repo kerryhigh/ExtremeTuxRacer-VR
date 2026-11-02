@@ -148,6 +148,7 @@ void etrgl_MatrixMode(GLenum mode);
 void etrgl_LoadIdentity(void);
 void etrgl_LoadMatrixd(const GLdouble* m);
 void etrgl_LoadMatrixf(const GLfloat* m);
+void etrgl_GetModelViewMatrix(GLfloat* out);
 void etrgl_MultMatrixd(const GLdouble* m);
 void etrgl_PushMatrix(void);
 void etrgl_PopMatrix(void);

@@ -39,6 +39,7 @@ namespace {
 
 const unsigned int kCanvasWidth = 1280;
 const unsigned int kCanvasHeight = 720;
+const float kUiTextScale = 1.50f;
 const double kMenuPlaneWidthMetres = 2.6;
 const double kMenuPlaneDistanceMetres = 2.0;
 const int64_t kPosePredictionNanos = 50000000;
@@ -650,6 +651,7 @@ void Shutdown() {
 }
 
 bool IsActive() { return g.initialized; }
+float UiTextScale() { return g.initialized ? kUiTextScale : 1.0f; }
 bool IsSessionRunning() {
 	return g.initialized && etr_platform::IsResumed() &&
 	       etr_platform::HasDisplaySurface();

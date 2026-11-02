@@ -50,7 +50,7 @@ public:
 	bool LoadFontlist();
 	std::size_t GetFontIdx(const std::string &name) const;
 	const sf::Font& getCurrentFont() const { return *fonts[curr_font]; }
-	unsigned int GetSize() const { return curr_size; }
+	unsigned int GetSize() const;
 
 	// properties
 	void SetProps(const std::string &fontname, unsigned int size, const sf::Color& col);

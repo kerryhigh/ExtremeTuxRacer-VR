@@ -72,6 +72,7 @@ void Shutdown() {
 }
 
 bool IsActive() { return XRManager::isVRActive(); }
+float UiTextScale() { return 1.0f; }
 
 bool IsSessionRunning() {
 	XRManager* xr = XRManager::get();
@@ -282,6 +283,7 @@ double world_scale = 1.0;
 bool Init() { return false; }
 void Shutdown() {}
 bool IsActive() { return false; }
+float UiTextScale() { return 1.0f; }
 bool IsSessionRunning() { return false; }
 bool IsExitRequested() { return false; }
 bool BeginFrame() { return false; }

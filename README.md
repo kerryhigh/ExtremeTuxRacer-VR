@@ -14,10 +14,19 @@ The Android project has separate `quest` (OpenXR) and `cardboard` product flavor
 
 ## Install
 
+### Meta Quest
+
 1. Enable developer mode on your Quest.
 2. Download the APK from the [Releases](../../releases) page.
 3. Sideload it with [SideQuest](https://sidequestvr.com/) or `adb install -r <file>.apk`.
 4. Launch it from *Library → Unknown Sources*.
+
+### Android phone with Google Cardboard
+
+1. Download `etr-cardboard-debug.apk` from the `extreme-tux-racer-cardboard` GitHub Actions artifact, or build it with the instructions below.
+2. Install it with `adb install -r etr-cardboard-debug.apk` or your preferred APK installer.
+3. Launch **Extreme Tux Racer Cardboard** from the Android app drawer. It starts in the original player/menu flow; use the Xbox controller to choose **Practice** or an event and navigate the floating menu.
+4. Insert the phone into the viewer after choosing a course. The Cardboard SDK scans the viewer QR code on first launch and stores its profile; if you skip scanning, startup uses the SDK's standard Cardboard V1 fallback.
 
 The game data is unpacked to the app's internal storage on first launch.
 
@@ -81,9 +90,11 @@ To build the Quest flavor instead, run `assembleQuestDebug`; both variants share
 ## Compatibility notes
 
 - Designed for 64-bit Android phones with GLES 3; the requested Galaxy S21 Plus / Android 15 target is covered by the API levels and ARM64 ABI.
+- The Cardboard build starts in the original player/menu flow, while Quest retains its direct practice-race startup. Cardboard menus and HUD use the existing bold sans face and 1.5x font sizing for the floating screen.
 - Gameplay and assets are local after install. QR scanning uses the SDK's camera scanner; Google Play services may need to provide its barcode detector the first time it runs.
 - If no viewer profile is saved, the built-in Cardboard V1 fallback allows startup, but a scanned profile is needed for best lens alignment and eye separation.
-- The APK builds and its manifest/native payload are checked in CI. Physical startup, visual alignment, comfort, controller axis quirks, and sustained frame rate still need a Galaxy S21 Plus and Cardboard headset to verify.
+- A Galaxy S21 Plus / Android 15 smoke check verified app startup, stereo menus, gamepad-source menu navigation, course selection, and entry to a race. Actual Xbox-button/trigger feel, QR scan alignment, headset comfort, and sustained frame pacing still need hands-on testing with the target Xbox controller and Cardboard viewer.
+- The APK builds and its manifest/native payload are checked in CI.
 - There is no flat-screen diagnostic flavor yet.
 
 ## Building
