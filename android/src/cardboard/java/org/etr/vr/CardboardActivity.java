@@ -12,6 +12,14 @@ import android.view.WindowManager;
 /** NativeActivity wrapper for the standalone Google Cardboard build. */
 public final class CardboardActivity extends NativeActivity
         implements InputManager.InputDeviceListener {
+    // NativeActivity opens libetr for android_main, but that native-side
+    // dlopen does not register the library with this class loader for JNI
+    // method lookup. Load it through the Java runtime as well so the gamepad
+    // callbacks below resolve to their exported JNI entry point.
+    static {
+        System.loadLibrary("etr");
+    }
+
     private InputManager inputManager;
 
     @Override
@@ -19,6 +27,7 @@ public final class CardboardActivity extends NativeActivity
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         enterImmersiveMode();
+        nativeInitializeCardboard();
 
         inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
         if (inputManager != null) {
@@ -93,6 +102,8 @@ public final class CardboardActivity extends NativeActivity
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
+
+    private native void nativeInitializeCardboard();
 
     private static native void nativeSetGamepadConnected(boolean connected);
 }

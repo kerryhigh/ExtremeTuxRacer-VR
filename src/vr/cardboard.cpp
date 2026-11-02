@@ -605,12 +605,14 @@ void drawFloatingScreen() {
 bool Init() {
 	if (g.initialized) return true;
 	android_app* app = etr_platform::GetAndroidApp();
-	if (!app || !app->activity || !app->activity->vm) {
+	if (!app || !app->activity) {
 		LOGE("Cardboard has no Android activity");
 		return false;
 	}
 
-	Cardboard_initializeAndroid(app->activity->vm, app->activity->clazz);
+	// Cardboard_initializeAndroid is called by CardboardActivity on the Java
+	// UI thread. The SDK resolves its app classes with FindClass, which cannot
+	// see application classes from NativeActivity's attached game thread.
 	g.tracker = CardboardHeadTracker_create();
 	if (!g.tracker) {
 		LOGE("Cardboard head tracker could not be created");

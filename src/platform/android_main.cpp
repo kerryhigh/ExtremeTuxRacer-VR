@@ -17,6 +17,10 @@ renderer presents directly to the phone display.
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 
+#ifdef ENABLE_CARDBOARD
+#include <cardboard.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -373,6 +377,14 @@ void PumpAndroidEvents() {
 // --------------------------------------------------------------------
 
 #ifdef ENABLE_CARDBOARD
+extern "C" JNIEXPORT void JNICALL
+Java_org_etr_vr_CardboardActivity_nativeInitializeCardboard(
+    JNIEnv* env, jobject activity) {
+	JavaVM* vm = nullptr;
+	if (env->GetJavaVM(&vm) == JNI_OK && vm)
+		Cardboard_initializeAndroid(vm, activity);
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_org_etr_vr_CardboardActivity_nativeSetGamepadConnected(
     JNIEnv*, jclass, jboolean connected) {
